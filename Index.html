@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aathira Golden City - Interactive Map</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --color-available: #22c55e;
+      --color-available-hover: #16a34a;
+      --color-sold: #ef4444;
+      --color-sold-text: #dc2626;
+      --color-text-main: #0f172a;
+      --color-text-muted: #64748b;
+      --color-primary: #2563eb;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { display: flex; height: 100vh; overflow: hidden; }
+
+    #map { flex: 1; height: 100%; background: #ffffff; }
+
+    .leaflet-overlay-pane svg path { shape-rendering: crispEdges; }
+
+    .sidebar {
+      width: 360px;
+      background: #ffffff;
+      padding: 24px;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .sidebar h2 { color: #1e293b; margin-bottom: 16px; }
+
+    .instruction-text {
+      color: var(--color-text-muted);
+      font-size: 14px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .plot-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 10px;
+    }
+
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .detail-item span:first-child { color: var(--color-text-muted); }
+    .detail-item span:last-child { font-weight: 600; color: var(--color-text-main); text-align: right; }
+
+    .plot-pdf-frame {
+      width: 100%;
+      height: 220px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      margin-top: 4px;
+      display: block;
+      background-color: #ffffff;
+    }
+
+    .btn-contact {
+      margin-top: 16px;
+      padding: 12px;
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .btn-contact:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .fmb-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--color-primary);
+      font-weight: 600;
+      font-size: 13px;
+      text-decoration: none;
+    }
+    .fmb-link:hover { text-decoration: underline; }
+
+    /* Tooltip style: Text is white with no pointer events */
+    .leaflet-tooltip.circle-label {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 11px;
+      padding: 0;
+      pointer-events: none;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <div class="sidebar">
+    <h2>Plot Info</h2>
+    <div id="info-panel">
+      <p class="instruction-text">Click or tap any plot circle to see complete details.</p>
+    </div>
+    <button class="btn-contact" id="action-btn" disabled>Inquire Plot</button>
+  </div>
+
+  <!-- Leaflet JS & Data -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="plots-data.js"></script>
+  
+  <script>
+    // Centralized Settings (Easy to customize)
+    const COLORS = {
+      available: '#22c55e',
+      availableHover: '#16a34a',
+      sold: '#ef4444',
+      soldText: '#dc2626',
+      borderColor: '#000000' // <--- Change border color here!
+    };
+
+    // Map Initialization
+    const imgWidth = 1920, imgHeight = 1080;
+    const map = L.map('map', {
+      crs: L.CRS.Simple,
+      minZoom: -1,
+      maxZoom: 3,
+      maxBoundsViscosity: 0.8
+    });
+
+    L.imageOverlay('Aathira-Golden-City-Plots.svg', [[0, 0], [imgHeight, imgWidth]]).addTo(map);
+    map.setView([imgHeight / 2, imgWidth / 2], -0.2);
+
+    const panel = document.getElementById('info-panel');
+    const btn = document.getElementById('action-btn');
+
+    // Dynamic Label Font-Size Resizing on Zoom
+    function updateLabelFontSize() {
+      const zoom = map.getZoom();
+      const calculatedSize = Math.max(7, Math.round(12 * Math.pow(1.5, zoom)));
+      
+      document.querySelectorAll('.circle-label').forEach(el => {
+        el.style.fontSize = `${calculatedSize}px`;
+      });
+    }
+
+    map.on('zoom', updateLabelFontSize);
+
+    // Load & Render Plots
+    initMap(configData);
+
+    function initMap({ defaultPlotData, plotDetails }) {
+      const row5Config = { y: 481.5, startX: 1172, interval: 24.5, radius: 10, specialGap: 73 };
+      
+      for (let p = 98; p <= 126; p++) {
+        plotDetails[p] = plotDetails[p] || {};
+        plotDetails[p].radius = plotDetails[p].radius ?? row5Config.radius;
+      }
+
+      const row2Seq = [26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+      const row3Seq = [...row2Seq].reverse();
+      const row4Seq = row2Seq;
+
+      const coords = new Array(127);
+      for (let i = 1; i <= 126; i++) {
+        const item = plotDetails[i] || {};
+        const customX = item.x ?? null;
+        const customY = item.y ?? null;
+
+        if (i <= 26) {
+          coords[i] = { x: customX ?? item.x ?? 0, y: customY ?? 802.5 };
+        } else if (i <= 50) {
+          coords[i] = { x: customX ?? plotDetails[row2Seq[i - 27]].x, y: customY ?? 702.5 };
+        } else if (i <= 74) {
+          coords[i] = { x: customX ?? plotDetails[row3Seq[i - 51]].x, y: customY ?? 645.5 };
+        } else if (i <= 97) {
+          coords[i] = { x: customX ?? plotDetails[row4Seq[i - 75]].x, y: customY ?? 535.5 };
+        } else {
+          const stepIndex = i - 98;
+          const extraGap = i >= 109 ? (row5Config.specialGap - row5Config.interval) : 0;
+          coords[i] = {
+            x: customX ?? (row5Config.startX - (stepIndex * row5Config.interval) - extraGap),
+            y: customY ?? row5Config.y
+          };
+        }
+      }
+
+      // Render Plot Circles
+      for (let plotNum = 1; plotNum <= 126; plotNum++) {
+        const plotData = { ...defaultPlotData, ...(plotDetails[plotNum] || {}) };
+        const { x, y } = coords[plotNum];
+        const isSold = plotData.status === "Sold";
+        const plotLabel = plotData.label || `${plotNum}`;
+
+        const circle = L.circle([y, x], {
+          radius: plotData.radius,
+          color: COLORS.borderColor, // Dynamic border color
+          weight: 2,                 // Border thickness set to 2px
+          fillColor: isSold ? COLORS.sold : COLORS.available,
+          fillOpacity: 1
+        }).addTo(map);
+
+        circle.bindTooltip(plotLabel, {
+          permanent: true,
+          direction: 'center',
+          className: 'circle-label'
+        });
+
+        // Hover & Selection Behavior
+        circle.on('mouseover', function () {
+          this.setStyle({ 
+            fillColor: isSold ? COLORS.sold : COLORS.availableHover, 
+            weight: 3.5 // Border expands on hover
+          });
+        });
+
+        circle.on('mouseout', function () {
+          this.setStyle({ 
+            fillColor: isSold ? COLORS.sold : COLORS.available, 
+            weight: 2 // Reverts back to 2px
+          });
+        });
+
+        circle.on('click', () => showPlotDetails(plotNum, plotData));
+      }
+
+      updateLabelFontSize();
+    }
+
+    // Dynamic Sidebar Display
+    function showPlotDetails(plotId, data) {
+      const isAvailable = data.status === "Available";
+      const statusColor = isAvailable ? COLORS.availableHover : COLORS.soldText;
+      const displayLabel = data.label || `Plot #${plotId}`;
+      const dynamicPdfFile = data.pdfFile || `fmb/agc_fmb_1A${data.label || plotId}.pdf`;
+
+      const fields = [
+        ['Plot Number', displayLabel],
+        ['Status', `<span style="color: ${statusColor};">${data.status}</span>`],
+        ['Area Size', data.size],
+        ['Length x Breadth', `${data.length} x ${data.breadth}`],
+        ['Price', data.price],
+        ['Rate', data.rate],
+        ['Facing', data.facing],
+        ['Road Width', data.roadWidth],
+        ['Corner Plot', data.cornerPlot]
+      ];
+
+      const detailsHTML = fields
+        .map(([label, value]) => `<div class="detail-item"><span>${label}</span><span>${value}</span></div>`)
+        .join('');
+
+      panel.innerHTML = `
+        <div class="plot-card">
+          ${detailsHTML}
+          <div style="margin-top: 14px;">
+            <span style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Plot FMB:</span>
+            <iframe src="${dynamicPdfFile}#toolbar=0" class="plot-pdf-frame" title="${displayLabel} PDF"></iframe>
+          </div>
+          <div style="margin-top: 12px; text-align: center;">
+            <a href="${data.fmbLink}" target="_blank" class="fmb-link">📄 View Full FMB Sketch</a>
+          </div>
+        </div>
+      `;
+
+      btn.disabled = !isAvailable;
+      btn.innerText = isAvailable ? `Inquire About ${displayLabel}` : "Plot Sold";
+    }
+  </script>
+</body>
+</html>
