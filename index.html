@@ -20,13 +20,20 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { display: flex; height: 100vh; overflow: hidden; }
+    
+    body { 
+      display: flex; 
+      flex-direction: row;
+      height: 100vh; 
+      width: 100vw;
+      overflow: hidden; 
+    }
 
-    #map { flex: 1; height: 100%; background: #ffffff; }
+    #map { flex: 1; height: 100%; width: 100%; background: #ffffff; }
 
     .leaflet-overlay-pane svg path { shape-rendering: crispEdges; }
 
-    /* Sidebar Flexbox Layout */
+    /* Desktop Sidebar Layout */
     .sidebar {
       width: 380px;
       background: #ffffff;
@@ -38,7 +45,7 @@
       z-index: 1000;
     }
 
-    .sidebar h2 { color: #1e293b; margin-bottom: 16px; flex-shrink: 0; }
+    .sidebar h2 { color: #1e293b; margin-bottom: 12px; flex-shrink: 0; font-size: 20px; }
 
     /* Scrollable info container */
     #info-panel {
@@ -100,7 +107,7 @@
       pointer-events: none;
     }
 
-    /* Lengthened Frame Height for Full Image Visibility */
+    /* Desktop Frame Height */
     .plot-pdf-frame {
       width: 100%;
       height: 380px;
@@ -112,13 +119,14 @@
 
     /* Action button pinned strictly to bottom */
     .btn-contact {
-      margin-top: auto;
+      margin-top: 12px;
       padding: 14px;
       background: var(--color-primary);
       color: white;
       border: none;
       border-radius: 6px;
       font-weight: 600;
+      font-size: 15px;
       cursor: pointer;
       width: 100%;
       flex-shrink: 0;
@@ -129,7 +137,7 @@
       cursor: not-allowed;
     }
 
-    /* Fullscreen Lightbox Modal */
+    /* Fullscreen Modal Overlay */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -139,14 +147,14 @@
       z-index: 9999;
       justify-content: center;
       align-items: center;
-      padding: 20px;
+      padding: 12px;
     }
 
     .modal-overlay.active { display: flex; }
 
     .modal-content {
       position: relative;
-      width: 90vw;
+      width: 95vw;
       height: 90vh;
       background: #ffffff;
       border-radius: 8px;
@@ -156,14 +164,14 @@
 
     .modal-close-btn {
       position: absolute;
-      top: 12px;
-      right: 16px;
+      top: 10px;
+      right: 12px;
       background: rgba(15, 23, 42, 0.8);
       color: white;
       border: none;
       font-size: 20px;
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       cursor: pointer;
       z-index: 10000;
@@ -190,6 +198,45 @@
       padding: 0;
       pointer-events: none;
       user-select: none;
+    }
+
+    /* ========================================================= */
+    /* MOBILE & TABLET RESPONSIVE MEDIA QUERIES                  */
+    /* ========================================================= */
+    @media screen and (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      /* Map takes top half of mobile screen */
+      #map {
+        height: 55vh;
+        flex: none;
+      }
+
+      /* Sidebar becomes bottom drawer sheet */
+      .sidebar {
+        width: 100%;
+        height: 45vh;
+        padding: 16px;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+      }
+
+      .sidebar h2 {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+
+      .plot-pdf-frame {
+        height: 240px; /* Scaled down for mobile viewports */
+      }
+
+      .modal-content {
+        width: 100vw;
+        height: 95vh;
+      }
     }
   </style>
 </head>
@@ -342,7 +389,7 @@
        //const dynamicPdfFile = data.pdfFile || `/Users/Muthu/MuthuFiles/Gandharvakottai/Marketing/Pattas/${fileName}`;
 
       // 2. GITHUB PAGES URL (Uncomment line below before pushing to GitHub)
-      const dynamicPdfFile = data.pdfFile || `fmb/${fileName}`;
+       const dynamicPdfFile = data.pdfFile || `fmb/${fileName}`;
       // -------------------------------------------------------------
 
       const fields = [
@@ -375,6 +422,11 @@
 
       btn.disabled = !isAvailable;
       btn.innerText = isAvailable ? `Inquire About ${displayLabel}` : "Plot Sold";
+
+      // On Mobile: Smoothly scroll down to sidebar when a plot is tapped
+      if (window.innerWidth <= 768) {
+        document.querySelector('.sidebar').scrollIntoView({ behavior: 'smooth' });
+      }
     }
 
     function openModal(filePath) {
