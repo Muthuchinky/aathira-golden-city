@@ -201,20 +201,20 @@
     }
 
     /* ========================================================= */
-    /* MOBILE & TABLET RESPONSIVE MEDIA QUERIES                  */
+    /* 1. MOBILE PORTRAIT MODE (55% Map / 45% Drawer)           */
     /* ========================================================= */
-    @media screen and (max-width: 768px) {
+    @media screen and (max-width: 768px) and (orientation: portrait) {
       body {
         flex-direction: column;
       }
 
-      /* Map takes top half of mobile screen */
+      /* Map takes 55% of vertical height */
       #map {
         height: 55vh;
         flex: none;
       }
 
-      /* Sidebar becomes bottom drawer sheet */
+      /* Sidebar takes 45% of vertical height at bottom */
       .sidebar {
         width: 100%;
         height: 45vh;
@@ -230,12 +230,46 @@
       }
 
       .plot-pdf-frame {
-        height: 240px; /* Scaled down for mobile viewports */
+        height: 240px;
       }
 
       .modal-content {
         width: 100vw;
         height: 95vh;
+      }
+    }
+
+    /* ========================================================= */
+    /* 2. MOBILE LANDSCAPE MODE (70% Map / 30% Sidebar)         */
+    /* ========================================================= */
+    @media screen and (max-width: 900px) and (orientation: landscape) {
+      body {
+        flex-direction: row;
+      }
+
+      /* Map takes 70% of horizontal width */
+      #map {
+        width: 70%;
+        height: 100vh;
+        flex: none;
+      }
+
+      /* Sidebar takes 30% of horizontal width on right */
+      .sidebar {
+        width: 30%;
+        height: 100vh;
+        padding: 16px;
+        border-radius: 0;
+        box-shadow: -2px 0 10px rgba(0,0,0,0.15);
+      }
+
+      .sidebar h2 {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+
+      .plot-pdf-frame {
+        height: 200px;
       }
     }
   </style>
@@ -282,7 +316,10 @@
     });
 
     L.imageOverlay('Aathira-Golden-City-Plots.svg', [[0, 0], [imgHeight, imgWidth]]).addTo(map);
-    map.setView([imgHeight / 2, imgWidth / 2], -1.2);
+
+    // Initial Zoom Level
+    const initialZoom = window.innerWidth <= 768 ? 0.5 : 1.2;
+    map.setView([imgHeight / 2, imgWidth / 2], initialZoom);
 
     const panel = document.getElementById('info-panel');
     const btn = document.getElementById('action-btn');
@@ -423,8 +460,8 @@
       btn.disabled = !isAvailable;
       btn.innerText = isAvailable ? `Inquire About ${displayLabel}` : "Plot Sold";
 
-      // On Mobile: Smoothly scroll down to sidebar when a plot is tapped
-      if (window.innerWidth <= 768) {
+      // On Mobile Portrait: Smoothly scroll down to sidebar when a plot is tapped
+      if (window.innerWidth <= 768 && window.innerHeight > window.innerWidth) {
         document.querySelector('.sidebar').scrollIntoView({ behavior: 'smooth' });
       }
     }
