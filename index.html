@@ -26,18 +26,26 @@
 
     .leaflet-overlay-pane svg path { shape-rendering: crispEdges; }
 
+    /* Sidebar Flexbox Layout */
     .sidebar {
-      width: 360px;
+      width: 380px;
       background: #ffffff;
       padding: 24px;
       box-shadow: -2px 0 10px rgba(0,0,0,0.1);
       display: flex;
       flex-direction: column;
+      height: 100vh;
       z-index: 1000;
-      overflow-y: auto;
     }
 
-    .sidebar h2 { color: #1e293b; margin-bottom: 16px; }
+    .sidebar h2 { color: #1e293b; margin-bottom: 16px; flex-shrink: 0; }
+
+    /* Scrollable info container */
+    #info-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
 
     .instruction-text {
       color: var(--color-text-muted);
@@ -55,32 +63,57 @@
       border: 1px solid #e2e8f0;
       border-radius: 8px;
       padding: 16px;
-      margin-top: 10px;
+      margin-top: 4px;
     }
 
     .detail-item {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       font-size: 13px;
     }
 
     .detail-item span:first-child { color: var(--color-text-muted); }
     .detail-item span:last-child { font-weight: 600; color: var(--color-text-main); text-align: right; }
 
-    .plot-pdf-frame {
-      width: 100%;
-      height: 220px;
-      border-radius: 6px;
-      border: 1px solid #cbd5e1;
+    /* Clickable Preview Container */
+    .preview-wrapper {
+      position: relative;
+      cursor: pointer;
       margin-top: 4px;
-      display: block;
-      background-color: #ffffff;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
     }
 
+    .preview-wrapper:hover::after {
+      content: '🔍 Click to expand';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.4);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    /* Lengthened Frame Height for Full Image Visibility */
+    .plot-pdf-frame {
+      width: 100%;
+      height: 380px;
+      border: none;
+      display: block;
+      background-color: #ffffff;
+      pointer-events: none;
+    }
+
+    /* Action button pinned strictly to bottom */
     .btn-contact {
-      margin-top: 16px;
-      padding: 12px;
+      margin-top: auto;
+      padding: 14px;
       background: var(--color-primary);
       color: white;
       border: none;
@@ -88,6 +121,7 @@
       font-weight: 600;
       cursor: pointer;
       width: 100%;
+      flex-shrink: 0;
     }
 
     .btn-contact:disabled {
@@ -95,17 +129,57 @@
       cursor: not-allowed;
     }
 
-    .fmb-link {
-      display: inline-block;
-      margin-top: 10px;
-      color: var(--color-primary);
-      font-weight: 600;
-      font-size: 13px;
-      text-decoration: none;
+    /* Fullscreen Lightbox Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
     }
-    .fmb-link:hover { text-decoration: underline; }
 
-    /* Tooltip style: Text is white with no pointer events */
+    .modal-overlay.active { display: flex; }
+
+    .modal-content {
+      position: relative;
+      width: 90vw;
+      height: 90vh;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: rgba(15, 23, 42, 0.8);
+      color: white;
+      border: none;
+      font-size: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close-btn:hover { background: #ef4444; }
+
+    .modal-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
     .leaflet-tooltip.circle-label {
       background: transparent;
       border: none;
@@ -131,21 +205,27 @@
     <button class="btn-contact" id="action-btn" disabled>Inquire Plot</button>
   </div>
 
+  <!-- Fullscreen Modal -->
+  <div class="modal-overlay" id="file-modal" onclick="closeModal()">
+    <button class="modal-close-btn" onclick="closeModal()">✕</button>
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <iframe id="modal-frame" class="modal-iframe" src=""></iframe>
+    </div>
+  </div>
+
   <!-- Leaflet JS & Data -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="plots-data.js"></script>
   
   <script>
-    // Centralized Settings (Easy to customize)
     const COLORS = {
       available: '#22c55e',
       availableHover: '#16a34a',
       sold: '#ef4444',
       soldText: '#dc2626',
-      borderColor: '#000000' // <--- Change border color here!
+      borderColor: '#000000'
     };
 
-    // Map Initialization
     const imgWidth = 1920, imgHeight = 1080;
     const map = L.map('map', {
       crs: L.CRS.Simple,
@@ -159,8 +239,9 @@
 
     const panel = document.getElementById('info-panel');
     const btn = document.getElementById('action-btn');
+    const modal = document.getElementById('file-modal');
+    const modalFrame = document.getElementById('modal-frame');
 
-    // Dynamic Label Font-Size Resizing on Zoom
     function updateLabelFontSize() {
       const zoom = map.getZoom();
       const calculatedSize = Math.max(7, Math.round(12 * Math.pow(1.5, zoom)));
@@ -172,7 +253,6 @@
 
     map.on('zoom', updateLabelFontSize);
 
-    // Load & Render Plots
     initMap(configData);
 
     function initMap({ defaultPlotData, plotDetails }) {
@@ -211,7 +291,6 @@
         }
       }
 
-      // Render Plot Circles
       for (let plotNum = 1; plotNum <= 126; plotNum++) {
         const plotData = { ...defaultPlotData, ...(plotDetails[plotNum] || {}) };
         const { x, y } = coords[plotNum];
@@ -220,8 +299,8 @@
 
         const circle = L.circle([y, x], {
           radius: plotData.radius,
-          color: COLORS.borderColor, // Dynamic border color
-          weight: 1.5,                 // Border thickness set to 2px
+          color: COLORS.borderColor,
+          weight: 2,
           fillColor: isSold ? COLORS.sold : COLORS.available,
           fillOpacity: 1
         }).addTo(map);
@@ -232,18 +311,17 @@
           className: 'circle-label'
         });
 
-        // Hover & Selection Behavior
         circle.on('mouseover', function () {
           this.setStyle({ 
             fillColor: isSold ? COLORS.sold : COLORS.availableHover, 
-            weight: 2.5 // Border expands on hover
+            weight: 3.5 
           });
         });
 
         circle.on('mouseout', function () {
           this.setStyle({ 
             fillColor: isSold ? COLORS.sold : COLORS.available, 
-            weight: 1.5 // Reverts back to 2px
+            weight: 2 
           });
         });
 
@@ -253,12 +331,19 @@
       updateLabelFontSize();
     }
 
-    // Dynamic Sidebar Display
     function showPlotDetails(plotId, data) {
       const isAvailable = data.status === "Available";
       const statusColor = isAvailable ? COLORS.availableHover : COLORS.soldText;
       const displayLabel = data.label || `Plot #${plotId}`;
-      const dynamicPdfFile = data.pdfFile || `fmb/agc_fmb_1A${data.label || plotId}.pdf`;
+      const fileName = `agc_fmb_1A${data.label || plotId}.pdf`;
+
+      // -------------------------------------------------------------
+      // 1. LOCAL URL (Uncomment line below while testing on your computer)
+       //const dynamicPdfFile = data.pdfFile || `/Users/Muthu/MuthuFiles/Gandharvakottai/Marketing/Pattas/${fileName}`;
+
+      // 2. GITHUB PAGES URL (Uncomment line below before pushing to GitHub)
+      const dynamicPdfFile = data.pdfFile || `fmb/${fileName}`;
+      // -------------------------------------------------------------
 
       const fields = [
         ['Plot Number', displayLabel],
@@ -279,12 +364,11 @@
       panel.innerHTML = `
         <div class="plot-card">
           ${detailsHTML}
-          <div style="margin-top: 14px;">
+          <div style="margin-top: 12px;">
             <span style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Plot FMB:</span>
-            <iframe src="${dynamicPdfFile}#toolbar=0" class="plot-pdf-frame" title="${displayLabel} PDF"></iframe>
-          </div>
-          <div style="margin-top: 12px; text-align: center;">
-            <a href="${data.fmbLink}" target="_blank" class="fmb-link">📄 View Full FMB Sketch</a>
+            <div class="preview-wrapper" onclick="openModal('${dynamicPdfFile}')">
+              <iframe src="${dynamicPdfFile}#toolbar=0" class="plot-pdf-frame" title="${displayLabel} PDF"></iframe>
+            </div>
           </div>
         </div>
       `;
@@ -292,6 +376,22 @@
       btn.disabled = !isAvailable;
       btn.innerText = isAvailable ? `Inquire About ${displayLabel}` : "Plot Sold";
     }
+
+    function openModal(filePath) {
+      modalFrame.src = filePath;
+      modal.classList.add('active');
+    }
+
+    function closeModal() {
+      modal.classList.remove('active');
+      modalFrame.src = '';
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        closeModal();
+      }
+    });
   </script>
 </body>
 </html>
