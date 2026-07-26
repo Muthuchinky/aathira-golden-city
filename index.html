@@ -221,7 +221,7 @@
         const circle = L.circle([y, x], {
           radius: plotData.radius,
           color: COLORS.borderColor, // Dynamic border color
-          weight: 2,                 // Border thickness set to 2px
+          weight: 1.5,                 // Border thickness set to 2px
           fillColor: isSold ? COLORS.sold : COLORS.available,
           fillOpacity: 1
         }).addTo(map);
@@ -236,14 +236,14 @@
         circle.on('mouseover', function () {
           this.setStyle({ 
             fillColor: isSold ? COLORS.sold : COLORS.availableHover, 
-            weight: 3.5 // Border expands on hover
+            weight: 2.5 // Border expands on hover
           });
         });
 
         circle.on('mouseout', function () {
           this.setStyle({ 
             fillColor: isSold ? COLORS.sold : COLORS.available, 
-            weight: 2 // Reverts back to 2px
+            weight: 1.5 // Reverts back to 2px
           });
         });
 
