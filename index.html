@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Optimized viewport meta for native app touch response -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Aathira Golden City - Interactive Map</title>
   
   <!-- Leaflet CSS -->
@@ -19,173 +20,166 @@
       --color-primary: #2563eb;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: system-ui, -apple-system, sans-serif; 
+      -webkit-tap-highlight-color: transparent;
+    }
     
-    body { 
-      display: flex; 
-      flex-direction: row;
-      height: 100vh; 
-      width: 100vw;
+    html, body { 
+      height: 100%; 
+      width: 100%;
       overflow: hidden; 
+      background: #ffffff;
+      touch-action: manipulation;
     }
 
-    #map { flex: 1; height: 100%; width: 100%; background: #ffffff; }
+    #map { 
+      height: 100%; 
+      width: 100%; 
+      background: #ffffff; 
+    }
 
     .leaflet-overlay-pane svg path { shape-rendering: crispEdges; }
 
-    /* Desktop Sidebar Layout */
-    .sidebar {
-      width: 380px;
-      background: #ffffff;
-      padding: 24px;
-      box-shadow: -2px 0 10px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      z-index: 1000;
-    }
-
-    .sidebar h2 { color: #1e293b; margin-bottom: 12px; flex-shrink: 0; font-size: 20px; }
-
-    /* Scrollable info container */
-    #info-panel {
-      flex: 1;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-
-    .instruction-text {
-      color: var(--color-text-muted);
-      font-size: 14px;
-      animation: blink 1s infinite;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    .plot-card {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 16px;
-      margin-top: 4px;
-    }
-
-    .detail-item {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-
-    .detail-item span:first-child { color: var(--color-text-muted); }
-    .detail-item span:last-child { font-weight: 600; color: var(--color-text-main); text-align: right; }
-
-    /* Clickable Preview Container */
-    .preview-wrapper {
-      position: relative;
-      cursor: pointer;
-      margin-top: 4px;
-      border-radius: 6px;
-      overflow: hidden;
-      border: 1px solid #cbd5e1;
-    }
-
-    .preview-wrapper:hover::after {
-      content: '🔍 Click to expand';
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.4);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 13px;
-      pointer-events: none;
-    }
-
-    /* Desktop Frame Height */
-    .plot-pdf-frame {
-      width: 100%;
-      height: 380px;
-      border: none;
-      display: block;
-      background-color: #ffffff;
-      pointer-events: none;
-    }
-
-    /* Action button pinned strictly to bottom */
-    .btn-contact {
-      margin-top: 12px;
-      padding: 14px;
-      background: var(--color-primary);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 15px;
-      cursor: pointer;
-      width: 100%;
-      flex-shrink: 0;
-    }
-
-    .btn-contact:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
-    }
-
-    /* Fullscreen Modal Overlay */
+    /* Pop-up Overlay Modal - Mobile Bottom Sheet Style */
     .modal-overlay {
       display: none;
       position: fixed;
       top: 0; left: 0;
       width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(15, 23, 42, 0.65);
       z-index: 9999;
       justify-content: center;
-      align-items: center;
-      padding: 12px;
+      align-items: flex-end; /* Slides up from bottom on mobile */
+      padding: 0;
+    }
+
+    @media (min-width: 640px) {
+      .modal-overlay {
+        align-items: center;
+        padding: 16px;
+      }
     }
 
     .modal-overlay.active { display: flex; }
 
-    .modal-content {
+    .modal-card {
       position: relative;
-      width: 95vw;
-      height: 90vh;
+      width: 100%;
+      max-width: 500px;
+      max-height: 85vh;
       background: #ffffff;
-      border-radius: 8px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-      overflow: hidden;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
+      overflow-y: auto;
+      padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: slideUp 0.25s ease-out;
     }
 
+    @media (min-width: 640px) {
+      .modal-card {
+        border-radius: 12px;
+        animation: fadeIn 0.2s ease-out;
+      }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 10px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-text-main);
+    }
+
+    /* Increased touch target size for mobile */
     .modal-close-btn {
-      position: absolute;
-      top: 10px;
-      right: 12px;
-      background: rgba(15, 23, 42, 0.8);
-      color: white;
+      background: #f1f5f9;
+      color: var(--color-text-muted);
       border: none;
       font-size: 20px;
-      width: 44px;
-      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
       border-radius: 50%;
       cursor: pointer;
-      z-index: 10000;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .modal-close-btn:hover { background: #ef4444; }
+    .modal-close-btn:active {
+      background: #ef4444;
+      color: white;
+    }
 
-    .modal-iframe {
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px dashed #f1f5f9;
+      font-size: 14px;
+    }
+
+    .detail-item span:first-child { color: var(--color-text-muted); }
+    .detail-item span:last-child { font-weight: 600; color: var(--color-text-main); text-align: right; }
+
+    /* Mobile PDF Link Button */
+    .btn-pdf-view {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       width: 100%;
-      height: 100%;
+      padding: 12px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      color: var(--color-text-main);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      margin-top: 8px;
+    }
+
+    .btn-contact {
+      min-height: 48px; /* Touch friendly minimum height */
+      padding: 12px;
+      background: var(--color-primary);
+      color: white;
       border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+    }
+
+    .btn-contact:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
     }
 
     .leaflet-tooltip.circle-label {
@@ -199,104 +193,31 @@
       pointer-events: none;
       user-select: none;
     }
-
-    /* ========================================================= */
-    /* 1. MOBILE PORTRAIT MODE (55% Map / 45% Drawer)           */
-    /* ========================================================= */
-    @media screen and (max-width: 768px) and (orientation: portrait) {
-      body {
-        flex-direction: column;
-      }
-
-      /* Map takes 55% of vertical height */
-      #map {
-        height: 55vh;
-        flex: none;
-      }
-
-      /* Sidebar takes 45% of vertical height at bottom */
-      .sidebar {
-        width: 100%;
-        height: 45vh;
-        padding: 16px;
-        box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
-      }
-
-      .sidebar h2 {
-        font-size: 16px;
-        margin-bottom: 8px;
-      }
-
-      .plot-pdf-frame {
-        height: 240px;
-      }
-
-      .modal-content {
-        width: 100vw;
-        height: 95vh;
-      }
-    }
-
-    /* ========================================================= */
-    /* 2. MOBILE LANDSCAPE MODE (70% Map / 30% Sidebar)         */
-    /* ========================================================= */
-    @media screen and (max-width: 900px) and (orientation: landscape) {
-      body {
-        flex-direction: row;
-      }
-
-      /* Map takes 70% of horizontal width */
-      #map {
-        width: 70%;
-        height: 100vh;
-        flex: none;
-      }
-
-      /* Sidebar takes 30% of horizontal width on right */
-      .sidebar {
-        width: 30%;
-        height: 100vh;
-        padding: 16px;
-        border-radius: 0;
-        box-shadow: -2px 0 10px rgba(0,0,0,0.15);
-      }
-
-      .sidebar h2 {
-        font-size: 16px;
-        margin-bottom: 8px;
-      }
-
-      .plot-pdf-frame {
-        height: 200px;
-      }
-    }
   </style>
 </head>
 <body>
 
   <div id="map"></div>
 
-  <div class="sidebar">
-    <h2>Plot Info</h2>
-    <div id="info-panel">
-      <p class="instruction-text">Click or tap any plot circle to see complete details.</p>
+  <!-- Mobile Bottom Sheet Pop-Up Modal -->
+  <div class="modal-overlay" id="info-modal" onclick="closeModal()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-plot-title">Plot Information</h2>
+        <button class="modal-close-btn" onclick="closeModal()" aria-label="Close Modal">✕</button>
+      </div>
+
+      <div id="modal-details-container">
+        <!-- Plot details injected here -->
+      </div>
+
+      <button class="btn-contact" id="action-btn" disabled>Inquire Plot</button>
     </div>
-    <button class="btn-contact" id="action-btn" disabled>Inquire Plot</button>
   </div>
 
-  <!-- Fullscreen Modal -->
-  <div class="modal-overlay" id="file-modal" onclick="closeModal()">
-    <button class="modal-close-btn" onclick="closeModal()">✕</button>
-    <div class="modal-content" onclick="event.stopPropagation()">
-      <iframe id="modal-frame" class="modal-iframe" src=""></iframe>
-    </div>
-  </div>
-
-  <!-- Leaflet JS & Data -->
+  <!-- Leaflet JS & Custom Data File -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="plots-data.js"></script>
+  <script src="plots-data-polygon.js"></script>
   
   <script>
     const COLORS = {
@@ -307,133 +228,107 @@
       borderColor: '#000000'
     };
 
+    const isMobile = window.innerWidth <= 768;
     const imgWidth = 1920, imgHeight = 1080;
+    
     const map = L.map('map', {
       crs: L.CRS.Simple,
       minZoom: -1,
       maxZoom: 3,
-      maxBoundsViscosity: 0.8
+      maxBoundsViscosity: 0.8,
+      tap: true, // Optimised for touch devices
+      bounceAtZoomLimits: false
     });
 
     L.imageOverlay('Aathira-Golden-City-Plots.svg', [[0, 0], [imgHeight, imgWidth]]).addTo(map);
 
-    // Initial Zoom Level
-    //const initialZoom = window.innerWidth <= 768 ? 0.5 : .5;
-    // Initial Zoom Level
-// Change 0.5 and 0.2 to lower numbers (e.g., -0.5 or -1.0)
-const initialZoom = window.innerWidth <= 768 ? -1 : -1;
+    const initialZoom = isMobile ? -1 : -0.5;
     map.setView([imgHeight / 2, imgWidth / 2], initialZoom);
 
-    const panel = document.getElementById('info-panel');
+    const modal = document.getElementById('info-modal');
+    const modalTitle = document.getElementById('modal-plot-title');
+    const modalDetails = document.getElementById('modal-details-container');
     const btn = document.getElementById('action-btn');
-    const modal = document.getElementById('file-modal');
-    const modalFrame = document.getElementById('modal-frame');
 
+    // Efficient CSS Variable zoom handler (prevents DOM recalculation thrashing)
     function updateLabelFontSize() {
       const zoom = map.getZoom();
-      const calculatedSize = Math.max(7, Math.round(12 * Math.pow(1.5, zoom)));
-      
-      document.querySelectorAll('.circle-label').forEach(el => {
-        el.style.fontSize = `${calculatedSize}px`;
-      });
+      const calculatedSize = Math.max(8, Math.round(12 * Math.pow(1.4, zoom)));
+      document.documentElement.style.setProperty('--label-font-size', `${calculatedSize}px`);
     }
 
-    map.on('zoom', updateLabelFontSize);
+    map.on('zoomend', updateLabelFontSize);
 
     initMap(configData);
 
     function initMap({ defaultPlotData, plotDetails }) {
-      const row5Config = { y: 481.5, startX: 1172, interval: 24.5, radius: 10, specialGap: 73 };
-      
-      for (let p = 98; p <= 126; p++) {
-        plotDetails[p] = plotDetails[p] || {};
-        plotDetails[p].radius = plotDetails[p].radius ?? row5Config.radius;
-      }
-
-      const row2Seq = [26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-      const row3Seq = [...row2Seq].reverse();
-      const row4Seq = row2Seq;
-
-      const coords = new Array(127);
-      for (let i = 1; i <= 126; i++) {
-        const item = plotDetails[i] || {};
-        const customX = item.x ?? null;
-        const customY = item.y ?? null;
-
-        if (i <= 26) {
-          coords[i] = { x: customX ?? item.x ?? 0, y: customY ?? 802.5 };
-        } else if (i <= 50) {
-          coords[i] = { x: customX ?? plotDetails[row2Seq[i - 27]].x, y: customY ?? 702.5 };
-        } else if (i <= 74) {
-          coords[i] = { x: customX ?? plotDetails[row3Seq[i - 51]].x, y: customY ?? 645.5 };
-        } else if (i <= 97) {
-          coords[i] = { x: customX ?? plotDetails[row4Seq[i - 75]].x, y: customY ?? 535.5 };
-        } else {
-          const stepIndex = i - 98;
-          const extraGap = i >= 109 ? (row5Config.specialGap - row5Config.interval) : 0;
-          coords[i] = {
-            x: customX ?? (row5Config.startX - (stepIndex * row5Config.interval) - extraGap),
-            y: customY ?? row5Config.y
-          };
-        }
-      }
-
       for (let plotNum = 1; plotNum <= 126; plotNum++) {
         const plotData = { ...defaultPlotData, ...(plotDetails[plotNum] || {}) };
-        const { x, y } = coords[plotNum];
+        const { x, y } = plotData;
         const isSold = plotData.status === "Sold";
         const plotLabel = plotData.label || `${plotNum}`;
 
-        const circle = L.circle([y, x], {
-          radius: plotData.radius,
-          color: COLORS.borderColor,
+        let polygonBounds;
+
+        if (plotData.corners && Array.isArray(plotData.corners)) {
+          polygonBounds = plotData.corners;
+        } else if (x != null && y != null) {
+          const width = plotData.polyWidth ?? defaultPlotData.polyWidth;
+          const height = plotData.polyHeight ?? defaultPlotData.polyHeight;
+
+          const halfWidth = width / 2;
+          const halfHeight = height / 2;
+
+          polygonBounds = [
+            [y - halfHeight, x - halfWidth],
+            [y + halfHeight, x - halfWidth],
+            [y + halfHeight, x + halfWidth],
+            [y - halfHeight, x + halfWidth]
+          ];
+        } else {
+          continue;
+        }
+
+        const polygon = L.polygon(polygonBounds, {
+          color: plotData.borderColor || COLORS.borderColor,
           weight: 2,
           fillColor: isSold ? COLORS.sold : COLORS.available,
           fillOpacity: 1
         }).addTo(map);
 
-        circle.bindTooltip(plotLabel, {
+        polygon.bindTooltip(plotLabel, {
           permanent: true,
           direction: 'center',
           className: 'circle-label'
         });
 
-        circle.on('mouseover', function () {
-          this.setStyle({ 
-            fillColor: isSold ? COLORS.sold : COLORS.availableHover, 
-            weight: 3.5 
+        // Touch desktop fallback separation
+        if (!isMobile) {
+          polygon.on('mouseover', function () {
+            this.setStyle({ fillColor: isSold ? COLORS.sold : COLORS.availableHover, weight: 3 });
           });
-        });
-
-        circle.on('mouseout', function () {
-          this.setStyle({ 
-            fillColor: isSold ? COLORS.sold : COLORS.available, 
-            weight: 2 
+          polygon.on('mouseout', function () {
+            this.setStyle({ fillColor: isSold ? COLORS.sold : COLORS.available, weight: 2 });
           });
-        });
+        }
 
-        circle.on('click', () => showPlotDetails(plotNum, plotData));
+        polygon.on('click', () => openPlotModal(plotNum, plotData));
       }
 
       updateLabelFontSize();
     }
 
-    function showPlotDetails(plotId, data) {
+    function openPlotModal(plotId, data) {
       const isAvailable = data.status === "Available";
       const statusColor = isAvailable ? COLORS.availableHover : COLORS.soldText;
       const displayLabel = data.label || `Plot #${plotId}`;
-      const fileName = `agc_fmb_1A${data.label || plotId}.pdf`;
 
-      // -------------------------------------------------------------
-      // 1. LOCAL URL (Uncomment line below while testing on your computer)
-       //const dynamicPdfFile = data.pdfFile || `/Users/Muthu/MuthuFiles/Gandharvakottai/Marketing/Pattas/${fileName}`;
+      // Relative web path for production deployment
+      const dynamicPdfFile = data.fmbLink || data.pdfFile || `Pattas/agc_fmb_1A${data.label || plotId}.pdf`;
 
-      // 2. GITHUB PAGES URL (Uncomment line below before pushing to GitHub)
-       const dynamicPdfFile = data.pdfFile || `fmb/${fileName}`;
-      // -------------------------------------------------------------
+      modalTitle.innerText = displayLabel;
 
       const fields = [
-        ['Plot Number', displayLabel],
         ['Status', `<span style="color: ${statusColor};">${data.status}</span>`],
         ['Area Size', data.size],
         ['Length x Breadth', `${data.length} x ${data.breadth}`],
@@ -448,14 +343,16 @@ const initialZoom = window.innerWidth <= 768 ? -1 : -1;
         .map(([label, value]) => `<div class="detail-item"><span>${label}</span><span>${value}</span></div>`)
         .join('');
 
-      panel.innerHTML = `
-        <div class="plot-card">
+      // Mobile friendly document trigger instead of embedded iframe
+      const pdfMarkup = isMobile 
+        ? `<a href="${dynamicPdfFile}" target="_blank" class="btn-pdf-view">📄 View FMB Document (PDF)</a>`
+        : `<iframe src="${dynamicPdfFile}#toolbar=0" class="plot-pdf-frame" title="${displayLabel} PDF"></iframe>`;
+
+      modalDetails.innerHTML = `
+        <div>
           ${detailsHTML}
-          <div style="margin-top: 12px;">
-            <span style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Plot FMB:</span>
-            <div class="preview-wrapper" onclick="openModal('${dynamicPdfFile}')">
-              <iframe src="${dynamicPdfFile}#toolbar=0" class="plot-pdf-frame" title="${displayLabel} PDF"></iframe>
-            </div>
+          <div style="margin-top: 10px;">
+            ${pdfMarkup}
           </div>
         </div>
       `;
@@ -463,20 +360,11 @@ const initialZoom = window.innerWidth <= 768 ? -1 : -1;
       btn.disabled = !isAvailable;
       btn.innerText = isAvailable ? `Inquire About ${displayLabel}` : "Plot Sold";
 
-      // On Mobile Portrait: Smoothly scroll down to sidebar when a plot is tapped
-      if (window.innerWidth <= 768 && window.innerHeight > window.innerWidth) {
-        document.querySelector('.sidebar').scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-
-    function openModal(filePath) {
-      modalFrame.src = filePath;
       modal.classList.add('active');
     }
 
     function closeModal() {
       modal.classList.remove('active');
-      modalFrame.src = '';
     }
 
     document.addEventListener('keydown', function (e) {
